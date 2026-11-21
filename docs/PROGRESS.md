@@ -1,18 +1,18 @@
 # PROGRESS — Flag Bandits
 
-## Active session: YES — Antigravity, Flash, 2026-11-21
+## Active session: NO
 
 ## Current Status
 
-- Phase: 0 (Setup), COMPLETE
-- Done: design, context files, Unity CLI 1.0.1, Unity 6000.3.29f1 (6.3 LTS) URP project at repo root, `unity pipeline install`, Git LFS + `.gitignore`, `Assets/_Project` folder structure
-- Next up: Phase 1 — Offline player (move, jump, camera, basic gun, health)
+- Phase: 1 (Offline player), IN PROGRESS
+- Done: player movement, jump, sprint, PlayerSettings ScriptableObject, Cinemachine follow camera, OfflineTest scene with platforms/ramps, Player prefab
+- Next up: Phase 1 — basic gun (shooting/fire rate tuning) and health/damage system
 - Unity version installed: 6000.3.29f1 (6.3 LTS)
 - Blockers: Android NDK install failed — fix before Phase 10
 
 ## Next session
 
-- Task: Phase 1 — Offline player (move, jump, camera, basic gun, health)
+- Task: Phase 1 — Basic gun and health system
 - Tool: Antigravity → Flash (or Claude Code → Sonnet, Medium effort)
 
 ## Open Questions
@@ -36,6 +36,11 @@
 - Files changed:
 - Bugs/Notes:
 -->
+
+### 2026-11-21 | Phase 1 — Player movement, jump & Cinemachine camera | Tool: Antigravity | Model: Flash
+- Done: implemented PlayerSettings ScriptableObject and PlayerMovement component; created OfflineTest scene with ground, jumping platforms, and ramp via Unity CLI; added Cinemachine follow camera tracking Player; created Player prefab; verified clean console (0 errors).
+- Files changed: Assets/_Project/Scripts/Player/PlayerSettings.cs, Assets/_Project/Scripts/Player/PlayerMovement.cs, Assets/_Project/Settings/PlayerSettings.asset, Assets/_Project/Prefabs/Player.prefab, Assets/_Project/Scenes/OfflineTest.unity, docs/PROGRESS.md
+- Bugs/Notes: Unity CLI pipeline connected to live Editor on port 7800.
 
 ### 2026-11-21 | Phase 0 — Unity project setup & repo hygiene | Tool: Antigravity | Model: Flash
 - Done: verified CLAUDE.md, .gitignore, and .gitattributes (Git LFS); created Unity 6000.3.29f1 URP project at repo root; ran `unity pipeline install`; registered project in Unity Hub; created `Assets/_Project/{Scripts,Prefabs,Scenes,Materials}` folders.
