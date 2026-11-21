@@ -39,7 +39,8 @@
 
 ### When Rishi writes "START"
 
-1. Run `git pull`. If you can't run commands, ask Rishi to pull.
+1. Ask Rishi: "Pull latest from GitHub first, then say 'pulled'."
+   Wait for it. Don't run git commands.
 2. Read `docs/PROGRESS.md`.
 3. Check the "Next session" block. If your tool/model doesn't match
    the recommendation, say:
@@ -65,12 +66,12 @@
    - New log entry at the TOP (format is inside the file)
    - "Next session" block (task + tool + model + effort)
    - Set "Active session: NO"
-2. Commit and push:
-   `git add -A; git commit -m "Phase X: <task>"; git push`
-   If you can't run commands, give Rishi the exact commands.
+2. Don't run git commands. Rishi commits and pushes himself.
+   Give him a one-line commit message, e.g. "Phase 1: player movement".
 3. End with EXACTLY this format:
 
-   ✅ Session saved & pushed.
+   ✅ Session saved. Commit + push now.
+   📝 Commit message: <message>
    ➡️ Next: Phase X — <task>
    🔧 Switch to: <Tool> → <Model>, <Effort> effort
    Write **START** when ready.
@@ -94,38 +95,69 @@ Default tool choice (saves quota):
 
 ## PHASE PLAN (MVP)
 
-| #   | Phase           | Work                                                                                                                                             | Tier        |
-| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
-| 0   | Setup           | Unity CLI ✅, Unity login, Unity LTS + modules, project, Git + .gitignore + LFS, `unity pipeline install`, Unity plugin for Claude Code, folders | FAST        |
-| 1   | Offline player  | Move, jump, camera, basic gun, health                                                                                                            | FAST        |
-| 2   | Networking core | Photon Fusion, 2 players synced                                                                                                                  | STRONG      |
-| 3   | CTF logic       | Flags, captures, score, respawn, timer                                                                                                           | STRONG      |
-| 4   | Map 1 blockout  | Greybox Ruined Town, ladders, doors                                                                                                              | FAST        |
-| 5   | Weapons         | Pickups, pistol, rifle, shotgun, grenades                                                                                                        | FAST        |
-| 6   | Center mortar   | Control zone + mortar                                                                                                                            | FAST        |
-| 7   | Rooms + bots    | Quick Play, private codes (FAST), bot AI (STRONG)                                                                                                | STRONG      |
-| 8   | UI + polish     | Menus, HUD, scoreboard, art                                                                                                                      | FAST        |
-| 9   | Playtest + fix  | Netcode bugs (STRONG), others (FAST)                                                                                                             | Mixed       |
-| 10  | Mobile          | Touch controls, Android, performance                                                                                                             | FAST        |
-| 11+ | Post-MVP        | Maps 2–3, modes, monetization, accounts                                                                                                          | Per feature |
-
----
+| #   | Phase           | Work                                                                                                                                                    | Tier            |
+| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| 0   | Setup           | Unity CLI ✅, Unity login ✅, Unity 6.3 LTS + modules ✅ (NDK failed), project, Git + .gitignore + LFS, `unity pipeline install`, Unity plugin, folders | FAST            |
+| 1   | Offline player  | Move, jump, camera (Cinemachine), basic gun, health                                                                                                     | FAST            |
+| 2   | Networking core | Photon Fusion, 2 players synced                                                                                                                         | STRONG          |
+| 3   | CTF logic       | Flags, captures, score, respawn, timer                                                                                                                  | STRONG          |
+| 4a  | Map spec        | Review/refine docs/design/MAP_RUINED_TOWN.md (v1 drafted ✅)                                                                                            | STRONG (Claude) |
+| 4b  | Map blockout    | Greybox Ruined Town from spec (ProBuilder), NavMesh + links                                                                                             | FAST            |
+| 5   | Weapons         | Pickups, pistol, rifle, shotgun, grenades, melee                                                                                                        | FAST            |
+| 6   | Center mortar   | Clock tower control + mortar (per map spec)                                                                                                             | FAST            |
+| 7   | Rooms + bots    | Quick Play, private codes (FAST), bot AI (STRONG)                                                                                                       | STRONG          |
+| 8a  | UI spec         | Write docs/design/UI_DESIGN.md                                                                                                                          | STRONG (Claude) |
+| 8b  | UI build        | Build menus, HUD, scoreboard from spec + art pack                                                                                                       | FAST            |
+| 9   | Playtest + fix  | Netcode bugs (STRONG), others (FAST)                                                                                                                    | Mixed           |
+| 10  | Mobile          | Fix Android NDK, touch controls, Android build, performance                                                                                             | FAST            |
+| 11+ | Post-MVP        | Maps 2–3, modes, monetization, accounts                                                                                                                 | Per feature     |
 
 ## UI RULES (all tools must follow)
-
+- Follow docs/design/UI_DESIGN.md exactly. Don't redesign.
 - UI system: uGUI (Canvas) + TextMeshPro. Never use UI Toolkit or
   IMGUI for game UI.
-- Before making new UI, check Assets/\_Project/Prefabs/UI/ and REUSE
-  existing prefabs (buttons, panels, popups).
-- Colors, fonts, and sizes come from one ScriptableObject:
-  Assets/\_Project/Settings/UITheme.asset. Never hardcode colors.
-- Style: cartoony, bold, rounded buttons, big touch targets
-  (min 80px height) for mobile.
-- Canvas Scaler: Scale With Screen Size, reference 1920x1080,
-  match 0.5.
-- New UI elements become prefabs in Prefabs/UI/.
+- Reuse prefabs in Assets/_Project/Prefabs/UI/ before making new ones.
+- Colors, fonts, and sizes come from Assets/_Project/Settings/UITheme.asset.
+  Never hardcode them.
+- Min touch target 120×120 px at 1920×1080 reference.
 
 ---
+
+## DESIGN OWNERSHIP
+
+- Claude (Opus) is the DESIGN LEAD: UI design, map layouts, game feel
+  values, architecture. Claude writes specs in docs/design/\*.md.
+- Antigravity and Cursor IMPLEMENT specs exactly. They do not
+  redesign. If a spec is unclear or wrong, add it to PROGRESS.md
+  "Open Questions" and ask Rishi instead of improvising.
+- Specs change only in a Claude session, or with Rishi's approval.
+- Before building any UI or map, read the matching file in
+  docs/design/.
+
+## NETCODE RULES
+
+- Host is authoritative: clients send input only.
+- Hits, damage, flag pickup, and captures are decided on the host.
+  Never trust the client.
+
+## TUNING RULES
+
+- All gameplay numbers (speed, damage, fire rate, timers) live in
+  ScriptableObjects under Assets/\_Project/Settings/, never hardcoded,
+  so balance changes need no code.
+
+## PERFORMANCE BUDGET (low-end Android target)
+
+- 60 FPS target, 30 FPS minimum
+- Under ~150 draw calls per frame; use texture atlases and static
+  batching
+- Low-poly only; no real-time shadows on mobile
+
+## ASSET RULES
+
+- Asset Store packs go in Assets/ThirdParty/. Never edit them;
+  copy what you need into \_Project/ first.
+- Note each pack's name and license in docs/ASSETS.md.
 
 ## GAME DESIGN
 
