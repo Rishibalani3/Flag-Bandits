@@ -57,7 +57,12 @@ namespace FlagBandits.Player
         {
             if (target != null) return;
 
-            var player = Object.FindFirstObjectByType<PlayerMovement>();
+            // Only follow an enabled PlayerMovement (remote network players have it disabled).
+            PlayerMovement player = null;
+            foreach (var pm in Object.FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None))
+            {
+                if (pm.enabled) { player = pm; break; }
+            }
             if (player != null)
             {
                 target = player.transform;

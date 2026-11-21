@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using FlagBandits.Player;
+using FlagBandits.Network;
 using FlagBandits.UI;
 
 namespace FlagBandits.Combat
@@ -19,6 +20,7 @@ namespace FlagBandits.Combat
 
         private PlayerInput playerInput;
         private PlayerMovement playerMovement;
+        private NetworkShooter networkShooter;
         private InputAction attackAction;
         private Camera mainCamera;
         private float nextFireTime;
@@ -31,6 +33,7 @@ namespace FlagBandits.Combat
         {
             playerInput = GetComponent<PlayerInput>();
             playerMovement = GetComponent<PlayerMovement>();
+            networkShooter = GetComponent<NetworkShooter>();
             mainCamera = Camera.main;
 
             if (playerInput != null && playerInput.actions != null)
@@ -130,7 +133,22 @@ namespace FlagBandits.Combat
                 IDamageable damageable = gunHit.collider.GetComponentInParent<IDamageable>();
                 if (damageable != null)
                 {
-                    damageable.TakeDamage(weaponSettings.damage, gunHit.point, gunHit.normal);
+                    // Try networked damage path first (shooter → victim RPC).
+                    NetworkHealth victimNetHealth = gunHit.collider.GetComponentInParent<NetworkHealth>();
+                    if (victimNetHealth != null && networkShooter != null)
+                    {
+                        networkShooter.SendDamageToVictim(
+                            victimNetHealth,
+                            weaponSettings.damage,
+                            transform.position,
+                            weaponSettings.maxRange
+                        );
+                    }
+                    else
+                    {
+                        // Offline fallback — direct damage.
+                        damageable.TakeDamage(weaponSettings.damage, gunHit.point, gunHit.normal);
+                    }
                     CrosshairUI.TriggerHitMarker();
                 }
 
@@ -147,6 +165,12 @@ namespace FlagBandits.Combat
             // 5. High-visibility bullet tracer from muzzle to hitPoint
             float duration = weaponSettings.tracerDuration > 0f ? weaponSettings.tracerDuration : 0.05f;
             StartCoroutine(SpawnTracerRoutine(startPos, hitPoint, duration));
+
+            // 6. Notify NetworkShooter so remote clients see the shot.
+            if (networkShooter != null)
+            {
+                networkShooter.OnLocalShot(startPos, hitPoint);
+            }
         }
 
         private void SpawnMuzzleFlash(Vector3 position, Vector3 direction)

@@ -1,4 +1,4 @@
-# AGENTS.md — Flag Fury (shared by Claude Code + Antigravity + Cursor)
+# AGENTS.md — Flag Bandits (shared by Claude Code + Antigravity + Cursor)
 
 ## Developer
 
@@ -136,9 +136,14 @@ Default tool choice (saves quota):
 
 ## NETCODE RULES
 
-- Host is authoritative: clients send input only.
-- Hits, damage, flag pickup, and captures are decided on the host.
-  Never trust the client.
+- Photon Fusion 2, Shared Mode.
+- Each client owns its own player (movement, shooting input).
+- Master Client owns: flags, captures, score, timer, mortar, bots,
+  pickups.
+- Damage: shooter reports hit → victim's owner validates (range, line
+  of sight, fire rate) before applying.
+- Never trust a client for flag pickup/capture; Master Client decides.
+- Post-MVP option: Server Mode (self-hosted dedicated) for anti-cheat.
 
 ## TUNING RULES
 
@@ -161,12 +166,12 @@ Default tool choice (saves quota):
 
 ## GAME DESIGN
 
-**Flag Fury** (working title): a 3D multiplayer CTF shooter. Cartoony
+**Flag Bandits** (working title): a 3D multiplayer CTF shooter. Cartoony
 low-poly characters, Mini Militia–style gameplay, small dense maps,
 and a central super-weapon.
 
 - Platforms: WebGL → Android → iOS (iOS builds need a Mac, later)
-- Stack: Unity (C#), Photon Fusion (host-authoritative), Asset Store
+- Stack: Unity (C#), Photon Fusion 2 (Shared Mode), Asset Store
   low-poly art
 
 ### CTF Rules
@@ -214,7 +219,8 @@ and a central super-weapon.
 
 - Clean, modular C#; one responsibility per script.
 - Folders: Assets/\_Project/{Scripts,Prefabs,Scenes,Materials}
-- Follow Photon Fusion host-authoritative patterns.
+- Follow Photon Fusion 2 Shared Mode patterns (State Authority, Master
+  Client for game state).
 - Small, testable steps; never dump huge systems at once.
 - Use the Unity CLI to check console errors, run Play Mode tests, and
   build. Use screenshots only when verifying visuals.
