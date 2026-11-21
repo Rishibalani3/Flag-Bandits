@@ -219,3 +219,8 @@ and a central super-weapon.
 - Use the Unity CLI to check console errors, run Play Mode tests, and
   build. Use screenshots only when verifying visuals.
 - Never commit secrets (Photon App ID goes in a gitignored config).
+
+
+ Unity CLI: if `unity` isn't found, use the full path
+  `$env:LOCALAPPDATA\Unity\bin\unity.exe`. If that fails too, ask
+  Rishi to run `where.exe unity`.

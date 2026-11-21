@@ -14,6 +14,9 @@ GameObject:
   - component: {fileID: 7655432168446475380}
   - component: {fileID: 1384259608096082335}
   - component: {fileID: 1130724812855739303}
+  - component: {fileID: 8392019482710492817}
+  - component: {fileID: 6291048291048291028}
+  - component: {fileID: 4918204918204918201}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -162,3 +165,50 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FlagBandits.Player.PlayerMovement
   settings: {fileID: 11400000, guid: b155850d8a45d3e46a18ca49927c4479, type: 2}
   cameraTransform: {fileID: 0}
+--- !u!114 &8392019482710492817
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439303738695743363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be99374caef2f4848aca50b3a8b9863d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlagBandits.Combat.PlayerShooter
+  weaponSettings: {fileID: 11400000, guid: bc9a3c8dae4833e4783d2966b9e7779d, type: 2}
+  firePoint: {fileID: 0}
+  tracerPrefab: {fileID: 0}
+--- !u!114 &6291048291048291028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439303738695743363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10112b0510d339a46864d985f8020efb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlagBandits.Combat.Health
+  settings: {fileID: 11400000, guid: e1aa5900c462dda40b4e0d43a7cb0013, type: 2}
+  currentHealth: 100
+  isDead: 0
+--- !u!114 &4918204918204918201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439303738695743363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 982d190f848321747bd781e30a2073bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlagBandits.UI.CrosshairUI
+  theme: {fileID: 11400000, guid: d41938b8120394019bf47829a0184b91, type: 2}
+  crosshairRoot: {fileID: 0}
+  centerDot: {fileID: 0}
+  reticleBars: []
+  hitMarkerBars: []

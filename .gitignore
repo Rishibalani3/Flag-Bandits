@@ -44,3 +44,8 @@ sysinfo.txt
 # OS generated
 .DS_Store
 Thumbs.db
+
+.env
+
+Assets/Photon/Fusion/Resources/PhotonAppSettings.asset
+Assets/Photon/Fusion/Resources/PhotonAppSettings.asset.meta

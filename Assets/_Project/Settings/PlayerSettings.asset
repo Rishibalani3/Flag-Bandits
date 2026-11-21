@@ -19,3 +19,14 @@ MonoBehaviour:
   gravity: -20
   groundedGravity: -2
   rotationSpeed: 15
+  mouseSensitivity: 2
+  invertY: 0
+  minPitch: -35
+  maxPitch: 65
+  cameraDistance: 4.5
+  cameraPivotHeight: 1.6
+  cameraShoulderOffset: {x: 0.4, y: 0.1}
+  cameraCollisionLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  fallResetY: -10

@@ -4,16 +4,16 @@
 
 ## Current Status
 
-- Phase: 1 (Offline player), IN PROGRESS
-- Done: player movement, jump, sprint, PlayerSettings ScriptableObject, Cinemachine follow camera, OfflineTest scene with platforms/ramps, Player prefab
-- Next up: Phase 1 — basic gun (shooting/fire rate tuning) and health/damage system
+- Phase: 1 (Offline player) COMPLETE; Phase 2 (Networking core) READY
+- Done: Player movement, jump, sprint, ThirdPersonCamera (mouse look orbit, cursor lock), basic gun (raycast, visible tracers, muzzle flash, damage), Health & damage system, TargetDummy prefab, crosshair HUD & hit markers, fall reset at Y < -10, perimeter walls in OfflineTest.
+- Next up: Phase 2 — Networking core (Photon Fusion setup, 2 players synced)
 - Unity version installed: 6000.3.29f1 (6.3 LTS)
 - Blockers: Android NDK install failed — fix before Phase 10
 
 ## Next session
 
-- Task: Phase 1 — Basic gun and health system
-- Tool: Antigravity → Flash (or Claude Code → Sonnet, Medium effort)
+- Task: Phase 2 — Photon Fusion networking core (2 players synced)
+- Tool: Claude Code → Opus, High effort
 
 ## Open Questions
 
@@ -27,6 +27,7 @@
 - 2026-11-21: Context system = AGENTS.md + docs/PROGRESS.md on GitHub.
 - 2026-11-21: Unity CLI used for agent control of the editor.
 - 2026-11-21: Unity 6000.3.29f1 (6.3 LTS) selected and installed.
+- 2026-11-21: Rule: No raw .unity/.prefab text edits; use Unity CLI / Editor commands for scene and prefab manipulations.
 
 ## Log (newest first)
 
@@ -36,6 +37,11 @@
 - Files changed:
 - Bugs/Notes:
 -->
+
+### 2026-11-21 | Phase 1 — Basic gun, health system, third-person camera & combat test | Tool: Antigravity | Model: Flash
+- Done: implemented third-person orbit camera with mouse look and cursor lock; raycast gun shooting through crosshair with high-visibility tracers and muzzle flash; IDamageable health system with TargetDummy prefab (flash & respawn); fall reset at Y < -10; low perimeter walls in OfflineTest; crosshair HUD with hit markers; verified clean Play Mode via CLI screenshot.
+- Files changed: Assets/_Project/Scripts/Combat/*, Assets/_Project/Scripts/Player/*, Assets/_Project/Scripts/UI/*, Assets/_Project/Settings/*, Assets/_Project/Prefabs/*, Assets/_Project/Scenes/OfflineTest.unity, docs/PROGRESS.md
+- Bugs/Notes: fixed CrosshairUI canvas reparenting bug; removed legacy Cinemachine remnants; zero console errors.
 
 ### 2026-11-21 | Phase 1 — Player movement, jump & Cinemachine camera | Tool: Antigravity | Model: Flash
 - Done: implemented PlayerSettings ScriptableObject and PlayerMovement component; created OfflineTest scene with ground, jumping platforms, and ramp via Unity CLI; added Cinemachine follow camera tracking Player; created Player prefab; verified clean console (0 errors).
