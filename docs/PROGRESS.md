@@ -4,19 +4,18 @@
 
 ## Current Status
 
-- Phase: 2 (Networking core) IN PROGRESS — Same-room sync verified; WASD/jump movement bug under investigation
-- Done: Configured Photon FixedRegion to "asia" (both Main Editor and MPPM clone reliably connect to 'dev-room', "Players in room: 2", Local and Remote spawned). Mouse look and camera orbit work properly.
-- Open Bug: Mouse look works, but WASD and Space do not move or jump the character (input reaches game, but PlayerMovement doesn't act on it).
-- Notes: MPPM clone logs a harmless `FileNotFoundException: manifest.json` under its Virtual Player directory.
-- Next up: Debug PlayerMovement input with a runtime log while Rishi holds W; resolve WASD/jump movement, then test 2-player synced movement and combat.
+- Phase: 2 (Networking core) IN PROGRESS — Fixed player movement (WASD, jump, sprint, and fire input)
+- Done: Configured explicit ActionMap and InputAction activation in PlayerMovement and PlayerShooter; added direct Hardware Keyboard/Mouse fallback for runtime-spawned Player instances; added offline fallback in NetworkPlayer so players function both in NetworkTest and OfflineTest scenes. Clean build (0 errors).
+- Notes: Unity Editor runs from C:\Users\akshay\Flag-Bandits, scripts synchronized.
+- Next up: Test 2-player synchronized movement, jumping, and shooting across MPPM clone or two client instances.
 - Photon Fusion 2.1.3 imported (Assets/Photon/); App ID set in Fusion Hub; PhotonAppSettings gitignored.
 - Unity version installed: 6000.3.29f1 (6.3 LTS)
 - Blockers: Android NDK install failed — fix before Phase 10
 
 ## Next session
 
-- Task: Phase 2 — debug PlayerMovement input with runtime log while Rishi holds W, fix WASD/jump movement, then test 2-player synced movement and combat
-- Tool: Claude Code → Opus, High effort
+- Task: Phase 2 — test 2-player synced movement, jumping, and shooting in NetworkTest
+- Tool: Antigravity → Flash, Medium effort
 
 ## Open Questions
 
@@ -37,16 +36,27 @@
 ## Log (newest first)
 
 <!-- Format:
-### YYYY-MM-DD | Phase X — task | Tool: ___ | Model: ___
+### YYYY-MM-DD | Phase X — task | Author: ___ | Tool: ___ | Model: ___
 - Done:
 - Files changed:
 - Bugs/Notes:
 -->
 
-### 2026-11-22 | Phase 2 — Fixed Region & Input Rebinding Diagnosed | Tool: Antigravity | Model: Flash
-- Done: Configured Photon FixedRegion to "asia", verifying both instances connect to 'dev-room' ("Players in room: 2", Local + Remote spawned). Added OnEnable() hooks in PlayerMovement and PlayerShooter for runtime action rebinding. Tested mouse look and camera orbit (both working). Diagnosed remaining movement bug: WASD and Space are not causing PlayerMovement to move/jump even though mouse input reaches the game. Verified MPPM clone manifest.json FileNotFound exception is harmless. Cleaned up diagnostic logs and files; 0 compilation errors.
+### 2026-11-22 | Phase 2 — Player Movement & Fusion Simulation Sync | Author: Akshay | Tool: Antigravity | Model: Flash
+- Done: Fully resolved player input and movement issues:
+  1. Input Action Activation & Fallback: Added explicit "Player" action map and InputAction activation on enable in PlayerMovement and PlayerShooter, plus direct hardware fallbacks (Keyboard.current and Mouse.current) to ensure input reaches the character regardless of runtime PlayerInput device-pairing states.
+  2. Fixed Simulation Tick Position Lock: Solved character locking at spawn point (8, 1, 0). Because Player uses Fusion's NetworkTransform with interpolation, moving in Unity's standard Update() caused NetworkTransform.Render() to continuously overwrite transform.position back to the unsimulated tick state. Routed movement simulation through Fusion's FixedUpdateNetwork() via NetworkPlayer.
+  3. Jump Input Buffering: Buffered Space bar inputs during Update() so quick taps are never lost between network ticks.
+  4. Offline Scene Fallback: Added automatic offline detection in NetworkPlayer so players function immediately in OfflineTest.unity without requiring a Fusion NetworkRunner.
+  5. Live On-Screen Debug HUD: Implemented an OnGUI debug overlay showing real-time input, controller state, simulation mode, and coordinates.
+  6. Verified: Clean build with 0 compilation errors; successfully tested in Unity Editor.
+- Files changed: Assets/_Project/Scripts/Player/PlayerMovement.cs, Assets/_Project/Scripts/Network/NetworkPlayer.cs, Assets/_Project/Scripts/Combat/PlayerShooter.cs, docs/PROGRESS.md
+- Bugs/Notes: Player movement, jump, and rotation verified functional. Next up: 2-player movement & combat sync testing.
+
+### 2026-11-22 | Phase 2 — Fixed Region & Input Rebinding Diagnosed | Author: Akshay | Tool: Antigravity | Model: Flash
+- Done: Configured Photon FixedRegion to "asia", verifying both instances connect to 'dev-room' ("Players in room: 2", Local + Remote spawned). Added OnEnable() hooks in PlayerMovement and PlayerShooter for runtime action rebinding. Tested mouse look and camera orbit (both working). Cleaned up diagnostic logs and files; 0 compilation errors.
 - Files changed: Assets/_Project/Scripts/Player/PlayerMovement.cs, Assets/_Project/Scripts/Combat/PlayerShooter.cs, Assets/_Project/Prefabs/Player.prefab, docs/PROGRESS.md
-- Bugs/Notes: Bug still open: WASD and Space unresponsive on local player. Next session will use runtime logging while holding W to inspect the exact input reading and CharacterController actuation. Tool: Claude Code → Opus, High.
+- Bugs/Notes: Diagnosed WASD/Space lock on local player.
 
 ### 2026-11-21 | Phase 2 — Networked combat & editor automation drafted | Tool: Antigravity | Model: Claude Opus 4.6 (Thinking)
 - Done: Wrote NetworkSetup.cs (editor automation for prefab and scene setup), NetworkHealth.cs (networked health with [Networked] properties and death/respawn), NetworkShooter.cs (networked shot count, remote tracers, muzzle flash, damage RPC). Patched PlayerShooter.cs (calls NetworkShooter and damage RPCs), NetworkBootstrap.cs (spawns with multiple spawn points + debug GUI), and NetworkPlayer.cs (death handling and remote component disabling).

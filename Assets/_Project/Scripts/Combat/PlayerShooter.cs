@@ -61,25 +61,49 @@ namespace FlagBandits.Combat
             SetupInputActions();
         }
 
+        private void OnDisable()
+        {
+            attackAction?.Disable();
+        }
+
         private void SetupInputActions()
         {
             if (playerInput == null) playerInput = GetComponent<PlayerInput>();
             if (playerInput != null && playerInput.actions != null)
             {
+                var playerMap = playerInput.actions.FindActionMap("Player");
+                if (playerMap != null && !playerMap.enabled)
+                {
+                    playerMap.Enable();
+                }
+
                 attackAction = playerInput.actions["Attack"];
+                attackAction?.Enable();
             }
         }
 
         private void Update()
         {
-            if (weaponSettings == null || attackAction == null)
+            if (weaponSettings == null)
             {
                 return;
             }
 
-            bool wantsToFire = weaponSettings.isAutomatic
-                ? attackAction.IsPressed()
-                : attackAction.WasPressedThisFrame();
+            bool wantsToFire = false;
+            if (attackAction != null && attackAction.enabled)
+            {
+                wantsToFire = weaponSettings.isAutomatic
+                    ? attackAction.IsPressed()
+                    : attackAction.WasPressedThisFrame();
+            }
+
+            // Direct mouse fallback in case PlayerInput device pairing is unassigned
+            if (!wantsToFire && Mouse.current != null)
+            {
+                wantsToFire = weaponSettings.isAutomatic
+                    ? Mouse.current.leftButton.isPressed
+                    : Mouse.current.leftButton.wasPressedThisFrame;
+            }
 
             if (wantsToFire && Time.time >= nextFireTime)
             {
