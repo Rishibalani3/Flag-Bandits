@@ -4,16 +4,18 @@
 
 ## Current Status
 
-- Phase: 2 (Networking core) IN PROGRESS — sub-task 1 & combat code drafted, NOT yet compiled/tested
-- Done: Wrote NetworkSetup.cs (editor automation), NetworkHealth.cs, NetworkShooter.cs; patched PlayerShooter.cs, NetworkBootstrap.cs, NetworkPlayer.cs. Went beyond sub-task 1 into networked combat.
-- Next up: Compile + console check, run NetworkSetup tool, test 2-player movement first, then combat.
+- Phase: 2 (Networking core) IN PROGRESS — Same-room sync verified; WASD/jump movement bug under investigation
+- Done: Configured Photon FixedRegion to "asia" (both Main Editor and MPPM clone reliably connect to 'dev-room', "Players in room: 2", Local and Remote spawned). Mouse look and camera orbit work properly.
+- Open Bug: Mouse look works, but WASD and Space do not move or jump the character (input reaches game, but PlayerMovement doesn't act on it).
+- Notes: MPPM clone logs a harmless `FileNotFoundException: manifest.json` under its Virtual Player directory.
+- Next up: Debug PlayerMovement input with a runtime log while Rishi holds W; resolve WASD/jump movement, then test 2-player synced movement and combat.
 - Photon Fusion 2.1.3 imported (Assets/Photon/); App ID set in Fusion Hub; PhotonAppSettings gitignored.
 - Unity version installed: 6000.3.29f1 (6.3 LTS)
 - Blockers: Android NDK install failed — fix before Phase 10
 
 ## Next session
 
-- Task: Phase 2 — compile + console check, run NetworkSetup tool, test 2-player movement first, then combat
+- Task: Phase 2 — debug PlayerMovement input with runtime log while Rishi holds W, fix WASD/jump movement, then test 2-player synced movement and combat
 - Tool: Claude Code → Opus, High effort
 
 ## Open Questions
@@ -30,6 +32,7 @@
 - 2026-11-21: Unity 6000.3.29f1 (6.3 LTS) selected and installed.
 - 2026-11-21: Rule: No raw .unity/.prefab text edits; use Unity CLI / Editor commands for scene and prefab manipulations.
 - 2026-11-21: Netcode = Fusion 2 Shared Mode (WebGL/mobile first); Master Client authoritative for game state. Replaces host-authoritative rule.
+- 2026-11-22: Photon FixedRegion set to "asia" so all local dev instances connect to the same cluster.
 
 ## Log (newest first)
 
@@ -39,6 +42,11 @@
 - Files changed:
 - Bugs/Notes:
 -->
+
+### 2026-11-22 | Phase 2 — Fixed Region & Input Rebinding Diagnosed | Tool: Antigravity | Model: Flash
+- Done: Configured Photon FixedRegion to "asia", verifying both instances connect to 'dev-room' ("Players in room: 2", Local + Remote spawned). Added OnEnable() hooks in PlayerMovement and PlayerShooter for runtime action rebinding. Tested mouse look and camera orbit (both working). Diagnosed remaining movement bug: WASD and Space are not causing PlayerMovement to move/jump even though mouse input reaches the game. Verified MPPM clone manifest.json FileNotFound exception is harmless. Cleaned up diagnostic logs and files; 0 compilation errors.
+- Files changed: Assets/_Project/Scripts/Player/PlayerMovement.cs, Assets/_Project/Scripts/Combat/PlayerShooter.cs, Assets/_Project/Prefabs/Player.prefab, docs/PROGRESS.md
+- Bugs/Notes: Bug still open: WASD and Space unresponsive on local player. Next session will use runtime logging while holding W to inspect the exact input reading and CharacterController actuation. Tool: Claude Code → Opus, High.
 
 ### 2026-11-21 | Phase 2 — Networked combat & editor automation drafted | Tool: Antigravity | Model: Claude Opus 4.6 (Thinking)
 - Done: Wrote NetworkSetup.cs (editor automation for prefab and scene setup), NetworkHealth.cs (networked health with [Networked] properties and death/respawn), NetworkShooter.cs (networked shot count, remote tracers, muzzle flash, damage RPC). Patched PlayerShooter.cs (calls NetworkShooter and damage RPCs), NetworkBootstrap.cs (spawns with multiple spawn points + debug GUI), and NetworkPlayer.cs (death handling and remote component disabling).

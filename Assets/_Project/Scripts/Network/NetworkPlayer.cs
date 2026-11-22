@@ -17,6 +17,8 @@ namespace FlagBandits.Network
         private NetworkHealth networkHealth;
         private PlayerMovement playerMovement;
         private CharacterController charController;
+        private PlayerInput playerInput;
+        private PlayerShooter playerShooter;
 
         public override void Spawned()
         {
@@ -26,20 +28,22 @@ namespace FlagBandits.Network
             networkHealth = GetComponent<NetworkHealth>();
             playerMovement = GetComponent<PlayerMovement>();
             charController = GetComponent<CharacterController>();
-
-            // Enable input / movement / shooting ONLY for the local player.
-            SetEnabled<PlayerInput>(isLocal);
-            SetEnabled<PlayerMovement>(isLocal);
-            SetEnabled<PlayerShooter>(isLocal);
-
-            // Remote players don't need a CharacterController (NetworkTransform drives them).
-            if (!isLocal && charController != null)
-            {
-                charController.enabled = false;
-            }
+            playerInput = GetComponent<PlayerInput>();
+            playerShooter = GetComponent<PlayerShooter>();
 
             if (isLocal)
             {
+                // Enable input / movement / shooting ONLY for the local player.
+                if (playerInput != null)
+                {
+                    playerInput.enabled = true;
+                    playerInput.ActivateInput();
+                }
+
+                if (playerMovement != null) playerMovement.enabled = true;
+                if (playerShooter != null) playerShooter.enabled = true;
+                if (charController != null) charController.enabled = true;
+
                 // Point the scene camera at the local player.
                 var cam = UnityEngine.Object.FindFirstObjectByType<ThirdPersonCamera>();
                 if (cam != null)
@@ -58,6 +62,19 @@ namespace FlagBandits.Network
                     networkHealth.OnDeath += HandleLocalDeath;
                 }
             }
+            else
+            {
+                // Ensure remote players have input, movement, shooting, and CharacterController disabled.
+                if (playerInput != null)
+                {
+                    playerInput.DeactivateInput();
+                    playerInput.enabled = false;
+                }
+
+                if (playerMovement != null) playerMovement.enabled = false;
+                if (playerShooter != null) playerShooter.enabled = false;
+                if (charController != null) charController.enabled = false;
+            }
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -73,8 +90,9 @@ namespace FlagBandits.Network
             if (!HasStateAuthority) return;
 
             // Disable movement/shooting while dead.
-            SetEnabled<PlayerMovement>(false);
-            SetEnabled<PlayerShooter>(false);
+            if (playerMovement != null) playerMovement.enabled = false;
+            if (playerShooter != null) playerShooter.enabled = false;
+            if (playerInput != null) playerInput.enabled = false;
 
             // Schedule respawn after delay.
             float delay = networkHealth != null ? networkHealth.RespawnDelay : 3f;
@@ -97,14 +115,13 @@ namespace FlagBandits.Network
             }
 
             // Re-enable controls.
-            SetEnabled<PlayerMovement>(true);
-            SetEnabled<PlayerShooter>(true);
-        }
-
-        private void SetEnabled<T>(bool enabled) where T : UnityEngine.Behaviour
-        {
-            var c = GetComponent<T>();
-            if (c != null) c.enabled = enabled;
+            if (playerInput != null)
+            {
+                playerInput.enabled = true;
+                playerInput.ActivateInput();
+            }
+            if (playerMovement != null) playerMovement.enabled = true;
+            if (playerShooter != null) playerShooter.enabled = true;
         }
     }
 }

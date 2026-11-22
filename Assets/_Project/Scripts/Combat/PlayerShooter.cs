@@ -36,10 +36,7 @@ namespace FlagBandits.Combat
             networkShooter = GetComponent<NetworkShooter>();
             mainCamera = Camera.main;
 
-            if (playerInput != null && playerInput.actions != null)
-            {
-                attackAction = playerInput.actions["Attack"];
-            }
+            SetupInputActions();
 
             if (firePoint == null)
             {
@@ -57,6 +54,20 @@ namespace FlagBandits.Combat
 
             flashMaterial = new Material(unlitShader);
             flashMaterial.color = new Color(1f, 0.9f, 0.5f, 1f);
+        }
+
+        private void OnEnable()
+        {
+            SetupInputActions();
+        }
+
+        private void SetupInputActions()
+        {
+            if (playerInput == null) playerInput = GetComponent<PlayerInput>();
+            if (playerInput != null && playerInput.actions != null)
+            {
+                attackAction = playerInput.actions["Attack"];
+            }
         }
 
         private void Update()

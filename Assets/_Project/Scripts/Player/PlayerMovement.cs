@@ -44,6 +44,11 @@ namespace FlagBandits.Player
             SetupInputActions();
         }
 
+        private void OnEnable()
+        {
+            SetupInputActions();
+        }
+
         private void Start()
         {
             spawnPosition = transform.position;
@@ -52,6 +57,7 @@ namespace FlagBandits.Player
 
         private void SetupInputActions()
         {
+            if (playerInput == null) playerInput = GetComponent<PlayerInput>();
             if (playerInput != null && playerInput.actions != null)
             {
                 moveAction = playerInput.actions["Move"];

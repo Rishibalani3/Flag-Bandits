@@ -15,8 +15,11 @@ GameObject:
   - component: {fileID: 1384259608096082335}
   - component: {fileID: 1130724812855739303}
   - component: {fileID: 8392019482710492817}
-  - component: {fileID: 6291048291048291028}
-  - component: {fileID: 4918204918204918201}
+  - component: {fileID: 2614210744762019139}
+  - component: {fileID: 9193321746164784418}
+  - component: {fileID: 7066035297382155805}
+  - component: {fileID: 647910081368470905}
+  - component: {fileID: 6377298083949410034}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -128,7 +131,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2439303738695743363}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
   m_Name: 
@@ -158,7 +161,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2439303738695743363}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f5846ff55f9be7f46b9626d89102efdc, type: 3}
   m_Name: 
@@ -172,7 +175,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2439303738695743363}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: be99374caef2f4848aca50b3a8b9863d, type: 3}
   m_Name: 
@@ -180,7 +183,7 @@ MonoBehaviour:
   weaponSettings: {fileID: 11400000, guid: bc9a3c8dae4833e4783d2966b9e7779d, type: 2}
   firePoint: {fileID: 0}
   tracerPrefab: {fileID: 0}
---- !u!114 &6291048291048291028
+--- !u!114 &2614210744762019139
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -189,13 +192,90 @@ MonoBehaviour:
   m_GameObject: {fileID: 2439303738695743363}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 10112b0510d339a46864d985f8020efb, type: 3}
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FlagBandits.Combat.Health
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3498587955
+  SendPriority: 1
+  EnableInterpolation: 1
+  Flags: 262402
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 9193321746164784418}
+  - {fileID: 7066035297382155805}
+  - {fileID: 647910081368470905}
+  - {fileID: 6377298083949410034}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &9193321746164784418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439303738695743363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  ConfigFlags: 0
+  PhysicsSettings:
+    ForecastEnabled: 1
+    DebugPhysics: 0
+    GravityForecast: 2
+    MaxExtrapolationTime: 0.15
+    MinLinearDetectedError: 0.02
+    MinAngularDetectedError: 3
+    DeadzoneVelocityMode: 0
+    MaxLinearError: 0
+    MaxAngularError: 0
+    LowCorrectionProgressThreshold: 0.015
+    HighErrorSimilarityThreshold: 1
+    MaxErrorTotalTime: 0.5
+    MaxRemoteSleepIgnoreTime: 0.5
+    ErrorCorrectionType: 0
+    LinearVelCorrectionMul: 1
+    AngularVelCorrectionMul: 1
+    PositionCorrectionLerp: 0.15
+    RotationCorrectionLerp: 0.15
+    Spring: 75
+    Damper: 2
+    MinImpactfulCollisionAlignment: 0.3
+    ImpactStartCorrectionTime: 0.1
+    ImpactCorrectionTimeComplete: 0.3
+--- !u!114 &7066035297382155805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439303738695743363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49928ec5e023bd44680d61449e169998, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlagBandits.Network.NetworkPlayer
+--- !u!114 &647910081368470905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439303738695743363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 932ca95ca6b0a6e42806b86a9e104157, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlagBandits.Network.NetworkHealth
   settings: {fileID: 11400000, guid: e1aa5900c462dda40b4e0d43a7cb0013, type: 2}
-  currentHealth: 100
-  isDead: 0
---- !u!114 &4918204918204918201
+  _CurrentHealth: 0
+  _IsDead:
+    RawValue: 0
+--- !u!114 &6377298083949410034
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -204,11 +284,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 2439303738695743363}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 982d190f848321747bd781e30a2073bd, type: 3}
+  m_Script: {fileID: 11500000, guid: 562e50f52c71b094882d419bfc7d6fcf, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FlagBandits.UI.CrosshairUI
-  theme: {fileID: 11400000, guid: d41938b8120394019bf47829a0184b91, type: 2}
-  crosshairRoot: {fileID: 0}
-  centerDot: {fileID: 0}
-  reticleBars: []
-  hitMarkerBars: []
+  m_EditorClassIdentifier: Assembly-CSharp::FlagBandits.Network.NetworkShooter
+  firePoint: {fileID: 0}
+  _ShotCount: 0
+  _LastHitPoint: {x: 0, y: 0, z: 0}
+  _LastFireOrigin: {x: 0, y: 0, z: 0}

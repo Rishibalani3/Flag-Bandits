@@ -8,7 +8,7 @@ namespace FlagBandits.Network
     /// State Authority (the player's owner) processes damage; other clients see the results.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
-    public class NetworkHealth : NetworkBehaviour
+    public class NetworkHealth : NetworkBehaviour, Combat.IDamageable
     {
         [Header("Settings")]
         [SerializeField] private Combat.HealthSettings settings;
@@ -64,6 +64,14 @@ namespace FlagBandits.Network
                 {
                     OnRespawned?.Invoke();
                 }
+            }
+        }
+
+        public void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitNormal)
+        {
+            if (HasStateAuthority)
+            {
+                ApplyDamage(amount);
             }
         }
 
