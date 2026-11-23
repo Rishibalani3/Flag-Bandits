@@ -4,18 +4,22 @@
 
 ## Current Status
 
-- Phase: 2 (Networking core) IN PROGRESS — Fixed player movement (WASD, jump, sprint, and fire input)
-- Done: Configured explicit ActionMap and InputAction activation in PlayerMovement and PlayerShooter; added direct Hardware Keyboard/Mouse fallback for runtime-spawned Player instances; added offline fallback in NetworkPlayer so players function both in NetworkTest and OfflineTest scenes. Clean build (0 errors).
-- Notes: Unity Editor runs from C:\Users\akshay\Flag-Bandits, scripts synchronized.
-- Next up: Test 2-player synchronized movement, jumping, and shooting across MPPM clone or two client instances.
+- Phase: 2 (Networking core) COMPLETE — 2-Player sync & combat finalized
+- Done:
+  1. Remote Hit Detection: Kept CharacterController enabled on remote players so raycasts hit them and damage RPCs trigger reliably.
+  2. Visual Damage & Death: Hooked up mesh damage flash (red) and death handling (hide mesh + disable collider) with 3s respawn cycle.
+  3. Health HUD: Added clean bottom-center health bar and respawn countdown for the local player.
+  4. Movement & Sim Tick: Movement driven by FixedUpdateNetwork() with jump buffering in Update().
+  5. Clean build: 0 compilation errors across all assemblies.
+- Next up: Phase 3 (CTF logic — Flags, base captures, scoring, respawn points, match timer).
 - Photon Fusion 2.1.3 imported (Assets/Photon/); App ID set in Fusion Hub; PhotonAppSettings gitignored.
 - Unity version installed: 6000.3.29f1 (6.3 LTS)
 - Blockers: Android NDK install failed — fix before Phase 10
 
 ## Next session
 
-- Task: Phase 2 — test 2-player synced movement, jumping, and shooting in NetworkTest
-- Tool: Antigravity → Flash, Medium effort
+- Task: Phase 3 — CTF logic (Flags, base captures, score, respawn, timer)
+- Tool: Claude Code → Opus, High effort (Tier: STRONG per AGENTS.md)
 
 ## Open Questions
 
@@ -32,6 +36,7 @@
 - 2026-11-21: Rule: No raw .unity/.prefab text edits; use Unity CLI / Editor commands for scene and prefab manipulations.
 - 2026-11-21: Netcode = Fusion 2 Shared Mode (WebGL/mobile first); Master Client authoritative for game state. Replaces host-authoritative rule.
 - 2026-11-22: Photon FixedRegion set to "asia" so all local dev instances connect to the same cluster.
+- 2026-11-23: Phase 2 Networking Core finalized with remote hit detection, visual damage/death reactions, and bottom health HUD.
 
 ## Log (newest first)
 
@@ -41,6 +46,17 @@
 - Files changed:
 - Bugs/Notes:
 -->
+
+### 2026-11-23 | Phase 2 — 2-Player Combat Sync & Health HUD | Author: Akshay | Tool: Antigravity | Model: Flash
+- Done: Completed all remaining items for Phase 2:
+  1. Enabled remote player collision: Remote players keep their CharacterController active so raycast bullets hit them, triggering IDamageable, hit markers, and damage RPCs.
+  2. Visual Damage Flash: Character flashes red for 0.12s on health reduction for both local and remote clients.
+  3. Death & Respawn Cycle: Mesh hides on death (health <= 0) and disables collider during the 3s respawn delay, then reappears at spawn with full health.
+  4. In-Game Health HUD: Implemented a clean bottom-center GUI displaying current/max HP and a respawn countdown timer when dead.
+  5. Cleaned debug overlay: Disabled the large debug box by default (toggleable in PlayerMovement via showDebugHUD).
+  6. Verified: Clean build with 0 compilation errors.
+- Files changed: Assets/_Project/Scripts/Network/NetworkPlayer.cs, Assets/_Project/Scripts/Player/PlayerMovement.cs, docs/PROGRESS.md
+- Bugs/Notes: Phase 2 is now complete. Ready for Phase 3 (CTF Logic).
 
 ### 2026-11-22 | Phase 2 — Player Movement & Fusion Simulation Sync | Author: Akshay | Tool: Antigravity | Model: Flash
 - Done: Fully resolved player input and movement issues:

@@ -295,8 +295,13 @@ namespace FlagBandits.Player
             cameraTransform = cam;
         }
 
+        [Header("Debug")]
+        [SerializeField] private bool showDebugHUD = false;
+
         private void OnGUI()
         {
+            if (!showDebugHUD) return;
+
             GUI.color = Color.white;
             GUILayout.BeginArea(new Rect(10, 110, 380, 180), GUI.skin.box);
             GUILayout.Label("<b>--- PlayerMovement Live Debug ---</b>", new GUIStyle(GUI.skin.label) { richText = true });
