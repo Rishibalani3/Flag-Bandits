@@ -4,22 +4,23 @@
 
 ## Current Status
 
-- Phase: 2 (Networking core) COMPLETE — 2-Player sync & combat finalized
+- Phase: 3 (CTF logic) IN PROGRESS — Step 3.1 (Teams, Colors & Base Spawning) completed
 - Done:
-  1. Remote Hit Detection: Kept CharacterController enabled on remote players so raycasts hit them and damage RPCs trigger reliably.
-  2. Visual Damage & Death: Hooked up mesh damage flash (red) and death handling (hide mesh + disable collider) with 3s respawn cycle.
-  3. Health HUD: Added clean bottom-center health bar and respawn countdown for the local player.
-  4. Movement & Sim Tick: Movement driven by FixedUpdateNetwork() with jump buffering in Update().
-  5. Clean build: 0 compilation errors across all assemblies.
-- Next up: Phase 3 (CTF logic — Flags, base captures, scoring, respawn points, match timer).
+  1. Team System: Created `Team.cs` enum (`TeamA` = Blue, `TeamB` = Red) and `TeamBaseZone.cs` for base/pedestal boundaries.
+  2. Network Synchronization: Added `[Networked] public Team PlayerTeam` to `NetworkPlayer` with Fusion 2 `ChangeDetector`.
+  3. Visual Team Identity: Players automatically receive team-colored materials (Blue for Team A, Red for Team B). Damage flash adapts (yellow flash for Red team, red flash for Blue team) so hit feedback is crisp.
+  4. Team Spawning: `NetworkBootstrap` assigns players alternately (Player 1 -> Team A at `SpawnPoint_A`, Player 2 -> Team B at `SpawnPoint_B`).
+  5. Team HUD: Added team badge above bottom health bar and team affiliation indicator in top-left network info.
+  6. Clean build: 0 compilation errors across all assemblies.
+- Next up: Phase 3 — Step 3.2 (Flag Prefabs & NetworkFlag state machine: AtBase, Carried, Dropped).
 - Photon Fusion 2.1.3 imported (Assets/Photon/); App ID set in Fusion Hub; PhotonAppSettings gitignored.
 - Unity version installed: 6000.3.29f1 (6.3 LTS)
 - Blockers: Android NDK install failed — fix before Phase 10
 
 ## Next session
 
-- Task: Phase 3 — CTF logic (Flags, base captures, score, respawn, timer)
-- Tool: Claude Code → Opus, High effort (Tier: STRONG per AGENTS.md)
+- Task: Phase 3 — Step 3.2: Flag Prefabs & NetworkFlag State Machine
+- Tool: Antigravity / Claude Code (Tier: STRONG per AGENTS.md)
 
 ## Open Questions
 
@@ -37,6 +38,7 @@
 - 2026-11-21: Netcode = Fusion 2 Shared Mode (WebGL/mobile first); Master Client authoritative for game state. Replaces host-authoritative rule.
 - 2026-11-22: Photon FixedRegion set to "asia" so all local dev instances connect to the same cluster.
 - 2026-11-23: Phase 2 Networking Core finalized with remote hit detection, visual damage/death reactions, and bottom health HUD.
+- 2026-11-24: Phase 3 Step 3.1 completed: Team assignment (Team A Blue / Team B Red), team color materials, team-based base spawning, and team HUD badge.
 
 ## Log (newest first)
 
@@ -46,6 +48,17 @@
 - Files changed:
 - Bugs/Notes:
 -->
+
+### 2026-11-24 | Phase 3 — Step 3.1: Team Assignment & Base Setup | Author: Akshay | Tool: Antigravity | Model: Flash
+- Done: Implemented foundation for CTF:
+  1. Team Affiliation: Created `Team.cs` enum (`TeamA` Blue, `TeamB` Red) and `TeamBaseZone.cs` trigger component for flag pedestals and team bases.
+  2. Networked Team Property: Added `[Networked] public Team PlayerTeam` to `NetworkPlayer.cs`, using Fusion 2 `ChangeDetector` to replicate team changes instantly to remote proxies.
+  3. Visual Material Tinting: Player capsule renders in their team color (Blue: `0.2, 0.5, 1.0`, Red: `0.95, 0.25, 0.25`). Damage flash adapts so Red players flash bright yellow and Blue players flash red on hit.
+  4. Team Spawning: `NetworkBootstrap.cs` assigns Player 1 to Team A (spawning at SpawnPoint_A) and Player 2 to Team B (spawning at SpawnPoint_B).
+  5. Team HUD: Rendered "TEAM BLUE" or "TEAM RED" badge above the bottom health bar and updated top-left debug overlay with team color.
+  6. Verified: Clean compile with 0 errors across all assemblies.
+- Files changed: Assets/_Project/Scripts/Gameplay/Team.cs, Assets/_Project/Scripts/Gameplay/TeamBaseZone.cs, Assets/_Project/Scripts/Network/NetworkPlayer.cs, Assets/_Project/Scripts/Network/NetworkBootstrap.cs, docs/PROGRESS.md
+- Bugs/Notes: Ready for multiplayer verification in Unity Editor / MPPM. Next up: Step 3.2 (Flag Prefabs & NetworkFlag state machine).
 
 ### 2026-11-23 | Phase 2 — 2-Player Combat Sync & Health HUD | Author: Akshay | Tool: Antigravity | Model: Flash
 - Done: Completed all remaining items for Phase 2:

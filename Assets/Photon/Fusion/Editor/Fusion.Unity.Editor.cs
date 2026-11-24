@@ -1811,11 +1811,16 @@ namespace Fusion.Editor {
     }
 
     static void ShutdownRunners() {
+      var list = new System.Collections.Generic.List<NetworkRunner>();
       var runners = NetworkRunner.GetInstancesEnumerator();
-
       while (runners.MoveNext()) {
         if (runners.Current) {
-          runners.Current.Shutdown();
+          list.Add(runners.Current);
+        }
+      }
+      foreach (var runner in list) {
+        if (runner) {
+          try { runner.Shutdown(); } catch { }
         }
       }
     }
@@ -5202,23 +5207,45 @@ namespace Fusion.Editor {
         return;
       }
 
-      if (SessionState.GetBool($"FusionCustomDependency/RegisteredEagerDependencies", false)) {
+      if (FusionMppm.Status == FusionMppmStatus.VirtualInstance) {
+        return;
+      }
+
+      const string mppmDir = "Temp/FusionMppm";
+      const string prefabsDepFile = "Temp/FusionMppm/Dependency_Fusion.PrefabsDependency.json";
+      bool hasPersistedFiles = System.IO.Directory.Exists(mppmDir)
+        && System.IO.File.Exists(prefabsDepFile);
+
+      if (SessionState.GetBool($"FusionCustomDependency/RegisteredEagerDependencies", false) && hasPersistedFiles) {
         return;
       }
 
       SessionState.SetBool($"FusionCustomDependency/RegisteredEagerDependencies", true);
 
-      foreach (var field in TypeCache.GetFieldsWithAttribute<FusionCustomDependencyEagerAttribute>()) {
-        Assert.Always(field.FieldType == typeof(FusionCustomDependency));
+      void RunAll() {
+        if (EditorApplication.isCompiling || EditorApplication.isUpdating) {
+          EditorApplication.delayCall += RunAll;
+          return;
+        }
+        foreach (var field in TypeCache.GetFieldsWithAttribute<FusionCustomDependencyEagerAttribute>()) {
+          Assert.Always(field.FieldType == typeof(FusionCustomDependency));
 
-        // make sure static constructor has run
-        System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(field.DeclaringType!.TypeHandle);
+          // make sure static constructor has run
+          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(field.DeclaringType!.TypeHandle);
 
-        var dependency = (FusionCustomDependency)field.GetValue(null);
-        Assert.Always(dependency != null);
+          var dependency = (FusionCustomDependency)field.GetValue(null);
+          Assert.Always(dependency != null);
 
-        dependency.Update(refreshAssetDB: false);
+          dependency.Update(refreshAssetDB: false);
+        }
       }
+
+      RunAll();
+      EditorApplication.delayCall += () => {
+        if (!System.IO.File.Exists(prefabsDepFile)) {
+          RunAll();
+        }
+      };
     }
   }
 }
@@ -6605,12 +6632,99 @@ namespace Fusion.Editor {
     public override FusionGlobalScriptableObjectLoadResult Load(Type type) {
       var defaultAssetPath = FusionGlobalScriptableObjectUtils.GetGlobalAssetPath(type);
       if (string.IsNullOrEmpty(defaultAssetPath)) {
-        return default;
+        var attr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<FusionGlobalScriptableObjectAttribute>(type);
+        if (attr != null && !string.IsNullOrEmpty(attr.DefaultPath)) {
+          defaultAssetPath = attr.DefaultPath;
+        }
       }
 
-      var result = (FusionGlobalScriptableObject)AssetDatabase.LoadAssetAtPath(defaultAssetPath, type);
-      FusionEditorLog.Assert(result);
-      return result;
+      FusionGlobalScriptableObject result = null;
+      if (!string.IsNullOrEmpty(defaultAssetPath)) {
+        result = (FusionGlobalScriptableObject)AssetDatabase.LoadAssetAtPath(defaultAssetPath, type);
+      }
+
+      if (!result) {
+        // Fallback for MPPM clones or when AssetDatabase is read-only: load from Resources!
+        var attr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<FusionGlobalScriptableObjectAttribute>(type);
+        if (attr != null && !string.IsNullOrEmpty(attr.DefaultPath)) {
+          string resPath = System.IO.Path.GetFileNameWithoutExtension(attr.DefaultPath);
+          result = (FusionGlobalScriptableObject)UnityEngine.Resources.Load(resPath, type);
+        }
+      }
+
+      if (!result && type == typeof(NetworkProjectConfigAsset)) {
+        // Final fallback for MPPM read-only clones when ScriptedImporter (.fusion) artifacts are flagged out-of-date
+        string cfgPath = defaultAssetPath;
+        if (string.IsNullOrEmpty(cfgPath) || !System.IO.File.Exists(cfgPath)) {
+          cfgPath = "Assets/Photon/Fusion/Resources/NetworkProjectConfig.fusion";
+        }
+        if (System.IO.File.Exists(cfgPath)) {
+          var asset = UnityEngine.ScriptableObject.CreateInstance<NetworkProjectConfigAsset>();
+          asset.Config = NetworkProjectConfigImporter.LoadConfigFromFile(cfgPath);
+          asset.Prefabs = new System.Collections.Generic.List<INetworkPrefabSource>();
+          asset.PrefabOptions = NetworkPrefabTableOptions.Default;
+
+          var addedGuids = new System.Collections.Generic.HashSet<string>();
+          foreach (var prefabGuid in AssetDatabase.FindAssets("t:Prefab")) {
+            var prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
+            var go = AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(prefabPath);
+            if (!go) continue;
+            var no = go.GetComponent<NetworkObject>();
+            if (!no || no.Flags.IsIgnored()) continue;
+            if (!addedGuids.Add(prefabGuid)) continue;
+
+            var src = new NetworkPrefabSourceStatic() {
+              Object = no,
+              AssetGuid = NetworkObjectGuid.Parse(prefabGuid),
+              AssetPath = prefabPath
+            };
+            asset.Prefabs.Add(src);
+            asset.Config.PrefabTable.TryAddSource(src, out _);
+          }
+
+          if (addedGuids.Count == 0 && System.IO.Directory.Exists("Assets/_Project/Prefabs")) {
+            foreach (var file in System.IO.Directory.GetFiles("Assets/_Project/Prefabs", "*.prefab", System.IO.SearchOption.AllDirectories)) {
+              string prefabPath = file.Replace('\\', '/');
+              string prefabGuid = AssetDatabase.AssetPathToGUID(prefabPath);
+              if (string.IsNullOrEmpty(prefabGuid) || addedGuids.Contains(prefabGuid)) continue;
+              var go = AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(prefabPath);
+              if (!go) continue;
+              var no = go.GetComponent<NetworkObject>();
+              if (!no || no.Flags.IsIgnored()) continue;
+              addedGuids.Add(prefabGuid);
+
+              var src = new NetworkPrefabSourceStatic() {
+                Object = no,
+                AssetGuid = NetworkObjectGuid.Parse(prefabGuid),
+                AssetPath = prefabPath
+              };
+              asset.Prefabs.Add(src);
+              asset.Config.PrefabTable.TryAddSource(src, out _);
+            }
+          }
+
+          asset.Config.PrefabTable.Options = asset.PrefabOptions;
+          var metaList = new System.Collections.Generic.List<NetworkProjectConfigAsset.SerializableSimulationBehaviourMeta>();
+          foreach (var monoScript in MonoImporter.GetAllRuntimeMonoScripts()) {
+            var scriptType = monoScript.GetClass();
+            if (scriptType?.IsSubclassOf(typeof(SimulationBehaviour)) != true) continue;
+            var executionOrder = MonoImporter.GetExecutionOrder(monoScript);
+            if (executionOrder == 0) continue;
+            metaList.Add(new NetworkProjectConfigAsset.SerializableSimulationBehaviourMeta() {
+              Type = scriptType,
+              ExecutionOrder = executionOrder
+            });
+            asset.Config.ExecutionOrderOverrides[scriptType] = executionOrder;
+          }
+          asset.BehaviourMeta = metaList.ToArray();
+          result = asset;
+        }
+      }
+
+      if (result) {
+        return result;
+      }
+      return default;
     }
   }
 }
@@ -15531,12 +15645,19 @@ namespace Fusion.Editor {
     private const string ManifestFile = "manifest.json";
 
     static FusionInstaller() {
+      if (FusionMppm.Status == FusionMppmStatus.VirtualInstance) {
+        return;
+      }
+
       if (PlayerSettings.runInBackground == false) {
         FusionEditorLog.LogInstaller($"Setting {nameof(PlayerSettings)}.{nameof(PlayerSettings.runInBackground)} to true");
         PlayerSettings.runInBackground = true;
       }
 
       var manifest = Path.Combine(Path.GetDirectoryName(Application.dataPath) ?? string.Empty, PackagesDir, ManifestFile);
+      if (!File.Exists(manifest)) {
+        return;
+      }
 
       if (File.ReadAllText(manifest).Contains(PackageToSearch)) {
         UpdateDefinesForAllTargets();
