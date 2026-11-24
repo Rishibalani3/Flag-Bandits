@@ -3,17 +3,20 @@ using UnityEngine.InputSystem;
 using Fusion;
 using FlagBandits.Player;
 using FlagBandits.Combat;
+using FlagBandits.Gameplay;
 
 namespace FlagBandits.Network
 {
     /// <summary>
     /// Splits local vs remote players. The owner (State Authority) keeps input,
     /// movement, shooting and the camera. Remote copies are driven only by NetworkTransform.
-    /// Handles death/respawn lifecycle.
+    /// Handles death/respawn lifecycle and team synchronization.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     public class NetworkPlayer : NetworkBehaviour
     {
+        [Networked] public Team PlayerTeam { get; set; }
+
         private NetworkHealth networkHealth;
         private PlayerMovement playerMovement;
         private CharacterController charController;
@@ -25,6 +28,7 @@ namespace FlagBandits.Network
         private Coroutine flashCoroutine;
         private float respawnTimer = 0f;
         private float lastKnownHealth = 100f;
+        private ChangeDetector changeDetector;
 
         private void Awake()
         {
@@ -48,14 +52,17 @@ namespace FlagBandits.Network
             if (Object == null || !Object.IsValid)
             {
                 EnableLocalPlayer();
+                ApplyTeamVisual(PlayerTeam);
             }
         }
 
         public override void Spawned()
         {
+            changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
+
             bool isLocal = HasStateAuthority || HasInputAuthority || (Object != null && Object.StateAuthority == Runner.LocalPlayer);
-            Debug.Log($"[NetworkPlayer] Spawned! isLocal: {isLocal}, HasStateAuthority: {HasStateAuthority}, StateAuthority: {Object.StateAuthority}, LocalPlayer: {Runner.LocalPlayer}");
-            gameObject.name = isLocal ? "Player (Local)" : $"Player (Remote {Object.StateAuthority})";
+            Debug.Log($"[NetworkPlayer] Spawned! isLocal: {isLocal}, HasStateAuthority: {HasStateAuthority}, StateAuthority: {Object.StateAuthority}, LocalPlayer: {Runner.LocalPlayer}, Team: {PlayerTeam}");
+            gameObject.name = isLocal ? $"Player (Local - {PlayerTeam})" : $"Player (Remote {Object.StateAuthority} - {PlayerTeam})";
 
             networkHealth = GetComponent<NetworkHealth>();
             playerMovement = GetComponent<PlayerMovement>();
@@ -70,6 +77,8 @@ namespace FlagBandits.Network
                 networkHealth.OnDeath += HandleDeathVisual;
                 networkHealth.OnRespawned += HandleRespawnVisual;
             }
+
+            ApplyTeamVisual(PlayerTeam);
 
             if (isLocal)
             {
@@ -98,6 +107,43 @@ namespace FlagBandits.Network
             if (playerMovement != null && playerMovement.enabled)
             {
                 playerMovement.ExecuteMovement(Runner.DeltaTime);
+            }
+        }
+
+        public override void Render()
+        {
+            if (changeDetector != null)
+            {
+                foreach (var change in changeDetector.DetectChanges(this))
+                {
+                    if (change == nameof(PlayerTeam))
+                    {
+                        ApplyTeamVisual(PlayerTeam);
+                    }
+                }
+            }
+        }
+
+        public void ApplyTeamVisual(Team team)
+        {
+            Color teamColor = GetTeamColor(team);
+            originalColor = teamColor;
+            if (flashCoroutine == null)
+            {
+                SetRendererColor(teamColor);
+            }
+        }
+
+        public static Color GetTeamColor(Team team)
+        {
+            switch (team)
+            {
+                case Team.TeamA:
+                    return new Color(0.2f, 0.5f, 1f); // Blue
+                case Team.TeamB:
+                    return new Color(0.95f, 0.25f, 0.25f); // Red
+                default:
+                    return Color.white;
             }
         }
 
@@ -185,7 +231,8 @@ namespace FlagBandits.Network
 
         private System.Collections.IEnumerator FlashRoutine()
         {
-            SetRendererColor(Color.red);
+            Color flashCol = PlayerTeam == Team.TeamB ? new Color(1f, 0.95f, 0.2f) : Color.red;
+            SetRendererColor(flashCol);
             yield return new WaitForSeconds(0.12f);
             SetRendererColor(originalColor);
             flashCoroutine = null;
@@ -277,6 +324,25 @@ namespace FlagBandits.Network
             float x = (Screen.width - barWidth) * 0.5f;
             float bottomMargin = Mathf.Max(35f, Screen.height * 0.06f);
             float y = Screen.height - barHeight - bottomMargin;
+
+            // Team Badge
+            string teamLabel = PlayerTeam == Team.TeamA ? "TEAM BLUE" : (PlayerTeam == Team.TeamB ? "TEAM RED" : "UNASSIGNED");
+            Color badgeBg = PlayerTeam == Team.TeamA ? new Color(0.15f, 0.4f, 0.9f, 0.9f) : (PlayerTeam == Team.TeamB ? new Color(0.85f, 0.2f, 0.2f, 0.9f) : new Color(0.3f, 0.3f, 0.3f, 0.9f));
+            float badgeWidth = Mathf.Clamp(barWidth * 0.45f, 130f, 220f);
+            float badgeHeight = Mathf.Clamp(barHeight * 0.75f, 20f, 32f);
+            float badgeX = (Screen.width - badgeWidth) * 0.5f;
+            float badgeY = y - badgeHeight - 4f;
+
+            GUI.color = badgeBg;
+            GUI.DrawTexture(new Rect(badgeX, badgeY, badgeWidth, badgeHeight), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            var badgeStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold,
+                fontSize = Mathf.Clamp(Mathf.RoundToInt(badgeHeight * 0.6f), 10, 16)
+            };
+            GUI.Label(new Rect(badgeX, badgeY, badgeWidth, badgeHeight), teamLabel, badgeStyle);
 
             // Health bar container
             GUI.Box(new Rect(x - 2, y - 2, barWidth + 4, barHeight + 4), "");
