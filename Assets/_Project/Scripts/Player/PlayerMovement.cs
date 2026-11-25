@@ -33,6 +33,7 @@ namespace FlagBandits.Player
         public bool IsNetworked { get; set; } = false;
         public Vector3 Velocity => controller != null ? controller.velocity : Vector3.zero;
         public Vector3 SpawnPosition => spawnPosition;
+        public Quaternion SpawnRotation => spawnRotation;
 
         private void Awake()
         {
@@ -137,7 +138,7 @@ namespace FlagBandits.Player
             }
         }
 
-        public void ResetToSpawn()
+        public void ResetToSpawn(bool keepControllerDisabled = false)
         {
             if (controller != null)
             {
@@ -148,7 +149,7 @@ namespace FlagBandits.Player
             transform.rotation = spawnRotation;
             verticalVelocity = Vector3.zero;
 
-            if (controller != null)
+            if (controller != null && !keepControllerDisabled)
             {
                 controller.enabled = true;
             }

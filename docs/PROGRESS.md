@@ -4,22 +4,22 @@
 
 ## Current Status
 
-- Phase: 3 (CTF logic) IN PROGRESS — Step 3.1 (Teams, Colors & Base Spawning) completed
+- Phase: 3 (CTF logic) IN PROGRESS — Step 3.2 (Flag Prefabs & NetworkFlag State Machine) completed & verified
 - Done:
-  1. Team System: Created `Team.cs` enum (`TeamA` = Blue, `TeamB` = Red) and `TeamBaseZone.cs` for base/pedestal boundaries.
-  2. Network Synchronization: Added `[Networked] public Team PlayerTeam` to `NetworkPlayer` with Fusion 2 `ChangeDetector`.
-  3. Visual Team Identity: Players automatically receive team-colored materials (Blue for Team A, Red for Team B). Damage flash adapts (yellow flash for Red team, red flash for Blue team) so hit feedback is crisp.
-  4. Team Spawning: `NetworkBootstrap` assigns players alternately (Player 1 -> Team A at `SpawnPoint_A`, Player 2 -> Team B at `SpawnPoint_B`).
-  5. Team HUD: Added team badge above bottom health bar and team affiliation indicator in top-left network info.
-  6. Clean build: 0 compilation errors across all assemblies.
-- Next up: Phase 3 — Step 3.2 (Flag Prefabs & NetworkFlag state machine: AtBase, Carried, Dropped).
+  1. `CTFSettings` ScriptableObject (`Assets/_Project/Settings/CTFSettings.asset`): Tunable pickup/return/capture radii, 10s dropped flag auto-return timer, post-respawn pickup delay, carry offset, and Step 3.3 match defaults.
+  2. `NetworkFlag` (`Assets/_Project/Scripts/Gameplay/NetworkFlag.cs`): Master-Client authoritative state machine (`AtBase`, `Carried`, `Dropped`) synced via `[Networked]` properties (`State`, `OwningTeam`, `CarrierPlayer`, `WorldAnchorPosition`, `ReturnTimer`).
+  3. Carrier Integration (`NetworkPlayer.cs` + `PlayerMovement.cs`): Automatically enables `SetCarryingFlag(true)` (`0.75x` speed, sprint disabled) while carrying enemy flag; drops flag to ground (or returns on void fall) when carrier dies or disconnects; uses `NetworkTransform.Teleport` before respawn to prevent flag re-grab.
+  4. Touch-to-Return & Auto-Return: Dropped flags return automatically after 10s or immediately when touched by a living teammate.
+  5. Flag Prefabs & Scene Wiring (`NetworkSetup.cs`): Generated `Flag_Blue.prefab` & `Flag_Red.prefab` (tagged `FusionPrefab`, `MasterClientObject` authority), `Base_TeamA` / `Base_TeamB` `TeamBaseZone` pedestals in `NetworkTest.unity`, and `CtfDebugHud` top-center flag status strip.
+  6. Verified: 2-player MPPM Play Mode test confirmed pickup, slowdown, drop on death, respawn without flag re-grab, and return; `dotnet build` passed with `0 Error(s)`.
+- Next up: Phase 3 — Step 3.3 (Captures, Score, Match Timer & Win Loop).
 - Photon Fusion 2.1.3 imported (Assets/Photon/); App ID set in Fusion Hub; PhotonAppSettings gitignored.
-- Unity version installed: 6000.3.29f1 (6.3 LTS)
+- Unity version installed: 6000.6.10f1 (recorded in ProjectVersion.txt; 6.3 LTS earlier note superseded)
 - Blockers: Android NDK install failed — fix before Phase 10
 
 ## Next session
 
-- Task: Phase 3 — Step 3.2: Flag Prefabs & NetworkFlag State Machine
+- Task: Phase 3 — Step 3.3: Captures, Score, Match Timer & Win Loop
 - Tool: Antigravity / Claude Code (Tier: STRONG per AGENTS.md)
 
 ## Open Questions
@@ -48,6 +48,16 @@
 - Files changed:
 - Bugs/Notes:
 -->
+
+### 2026-11-26 | Phase 3 — Step 3.2: Flag Prefabs & NetworkFlag State Machine | Author: Akshay | Tool: Antigravity | Model: Pro (Planning)
+- Done: Implemented Step 3.2 CTF flag mechanics & scene setup:
+  1. Created `CTFSettings` ScriptableObject (`Assets/_Project/Settings/CTFSettings.asset`) with tunable radii, 10s drop return delay, carry offset, and match config.
+  2. Created Master-Client authoritative `NetworkFlag` (`AtBase`, `Carried`, `Dropped`) with Fusion 2 `[Networked]` state/timer/anchor sync, ground raycast drop placement, out-of-bounds auto-return, and carrier disconnect handling.
+  3. Integrated `NetworkPlayer` + `PlayerMovement` (`SetCarryingFlag`, 0.75x carrier slowdown, local gold carrying HUD badge) and added `CtfDebugHud` top-center flag state strip.
+  4. Extended `NetworkBootstrap` (Master Client spawns `Flag_Blue`/`Flag_Red` at `TeamBaseZone` pedestals) and `NetworkSetup` (created flag prefabs with `FusionPrefab` label + `MasterClientObject` flag, built `Base_TeamA`/`Base_TeamB` pedestals & spawns in `NetworkTest.unity`).
+  5. Verified cleanly via Unity `6000.6.10f1` batchmode compile + Fusion ILWeaver + `NetworkSetup.SetupNetworkScene()` (`ExitCode: 0`, 0 errors), plus fixed death/respawn flag-regrab race (`NetworkTransform.Teleport` while still dead 0.25s before respawn + 0.5s Master-Client post-respawn pickup grace in `NetworkFlag`), verified `dotnet build` with `0 Error(s)`.
+- Files changed: Assets/_Project/Scripts/Gameplay/CTFSettings.cs, Assets/_Project/Scripts/Gameplay/NetworkFlag.cs, Assets/_Project/Scripts/UI/CtfDebugHud.cs, Assets/_Project/Scripts/Network/NetworkPlayer.cs, Assets/_Project/Scripts/Player/PlayerMovement.cs, Assets/_Project/Scripts/Network/NetworkBootstrap.cs, Assets/_Project/Scripts/Editor/NetworkSetup.cs, Assets/_Project/Settings/CTFSettings.asset, Assets/_Project/Prefabs/Flag_Blue.prefab, Assets/_Project/Prefabs/Flag_Red.prefab, Assets/_Project/Scenes/NetworkTest.unity, docs/PROGRESS.md
+- Bugs/Notes: Verified in 2-player MPPM Play Mode (pickup, carrier slowdown, drop on death, clean respawn without re-grab, and return). Next: Step 3.3 (Captures, Score, Match Timer & Win Loop).
 
 ### 2026-11-24 | Phase 3 — Step 3.1: Team Assignment & Base Setup | Author: Akshay | Tool: Antigravity | Model: Flash
 - Done: Implemented foundation for CTF:

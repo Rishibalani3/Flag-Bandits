@@ -39,7 +39,7 @@ namespace FlagBandits.UI
 
         private void EnsureCrosshairHierarchy()
         {
-            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
+            Canvas canvas = Object.FindAnyObjectByType<Canvas>();
             if (canvas == null)
             {
                 canvasObj = new GameObject("HUDCanvas");
