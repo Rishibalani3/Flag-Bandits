@@ -14,6 +14,8 @@ namespace FlagBandits.Network
     public class NetworkBootstrap : MonoBehaviour
     {
         [SerializeField] private NetworkObject playerPrefab;
+        [SerializeField] private NetworkObject flagBluePrefab;
+        [SerializeField] private NetworkObject flagRedPrefab;
         [SerializeField] private Transform[] spawnPoints;
         [SerializeField] private string sessionName = "dev-room";
         [SerializeField] private string fixedRegion = "asia";
@@ -65,7 +67,58 @@ namespace FlagBandits.Network
 
             string regionInfo = runner.SessionInfo.IsValid ? runner.SessionInfo.Region : fixedRegion;
             Debug.Log($"[NetworkBootstrap] Joined '{sessionName}' (Region: {regionInfo}) as {runner.LocalPlayer} (MasterClient: {runner.IsSharedModeMasterClient})");
+
+            if (runner.IsSharedModeMasterClient)
+            {
+                EnsureFlagsSpawned();
+            }
+
             await SpawnLocalPlayer();
+        }
+
+        private void EnsureFlagsSpawned()
+        {
+            var zones = FindObjectsByType<TeamBaseZone>();
+            SpawnFlagForTeamIfMissing(Team.TeamA, flagBluePrefab, zones, 0);
+            SpawnFlagForTeamIfMissing(Team.TeamB, flagRedPrefab, zones, 1);
+        }
+
+        private void SpawnFlagForTeamIfMissing(Team team, NetworkObject prefab, TeamBaseZone[] zones, int fallbackSpawnIndex)
+        {
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[NetworkBootstrap] Flag prefab for {team} is not assigned.");
+                return;
+            }
+
+            if (NetworkFlag.FindFlag(team) != null)
+            {
+                return;
+            }
+
+            Vector3 pos = Vector3.zero;
+            Quaternion rot = Quaternion.identity;
+            bool foundBase = false;
+
+            for (int i = 0; i < zones.Length; i++)
+            {
+                if (zones[i] != null && zones[i].Team == team)
+                {
+                    pos = zones[i].FlagPedestal.position;
+                    rot = zones[i].FlagPedestal.rotation;
+                    foundBase = true;
+                    break;
+                }
+            }
+
+            if (!foundBase && spawnPoints != null && fallbackSpawnIndex < spawnPoints.Length && spawnPoints[fallbackSpawnIndex] != null)
+            {
+                pos = spawnPoints[fallbackSpawnIndex].position;
+                pos.y = 0f;
+                rot = spawnPoints[fallbackSpawnIndex].rotation;
+            }
+
+            runner.Spawn(prefab, pos, rot, null);
         }
 
         private async Task SpawnLocalPlayer()
@@ -85,6 +138,7 @@ namespace FlagBandits.Network
             int teamBCount = 0;
             foreach (var p in FindObjectsByType<NetworkPlayer>())
             {
+                if (p == null || p.Object == null || !p.Object.IsValid) continue;
                 if (p.PlayerTeam == Team.TeamA) teamACount++;
                 else if (p.PlayerTeam == Team.TeamB) teamBCount++;
             }
@@ -103,22 +157,37 @@ namespace FlagBandits.Network
             localTeam = assignedTeam;
             hasLocalTeam = true;
 
-            Vector3 pos;
-            Quaternion rot;
+            Vector3 pos = Vector3.zero;
+            Quaternion rot = Quaternion.identity;
+            bool foundTeamSpawn = false;
 
-            if (spawnPoints != null && spawnPoints.Length > 0)
+            foreach (var zone in FindObjectsByType<TeamBaseZone>())
             {
-                // Index 0 = Team A Base (SpawnPoint_A), Index 1 = Team B Base (SpawnPoint_B)
-                int index = (assignedTeam == Team.TeamA) ? 0 : 1;
-                if (index >= spawnPoints.Length) index = 0;
-                pos = spawnPoints[index].position;
-                rot = spawnPoints[index].rotation;
+                if (zone != null && zone.Team == assignedTeam && zone.SpawnPoint != null)
+                {
+                    pos = zone.SpawnPoint.position;
+                    rot = zone.SpawnPoint.rotation;
+                    foundTeamSpawn = true;
+                    break;
+                }
             }
-            else
+
+            if (!foundTeamSpawn)
             {
-                int slot = runner.LocalPlayer.PlayerId % 10;
-                pos = Vector3.up + Vector3.right * (slot * spawnSpacing);
-                rot = Quaternion.identity;
+                if (spawnPoints != null && spawnPoints.Length > 0)
+                {
+                    // Index 0 = Team A Base (SpawnPoint_A), Index 1 = Team B Base (SpawnPoint_B)
+                    int index = (assignedTeam == Team.TeamA) ? 0 : 1;
+                    if (index >= spawnPoints.Length) index = 0;
+                    pos = spawnPoints[index].position;
+                    rot = spawnPoints[index].rotation;
+                }
+                else
+                {
+                    int slot = runner.LocalPlayer.PlayerId % 10;
+                    pos = Vector3.up + Vector3.right * (slot * spawnSpacing);
+                    rot = Quaternion.identity;
+                }
             }
 
             runner.Spawn(playerPrefab, pos, rot, runner.LocalPlayer, (r, obj) =>

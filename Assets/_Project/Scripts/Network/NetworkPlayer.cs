@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Fusion;
@@ -10,14 +11,44 @@ namespace FlagBandits.Network
     /// <summary>
     /// Splits local vs remote players. The owner (State Authority) keeps input,
     /// movement, shooting and the camera. Remote copies are driven only by NetworkTransform.
-    /// Handles death/respawn lifecycle and team synchronization.
+    /// Handles death/respawn lifecycle, flag carrier sync, and team synchronization.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     public class NetworkPlayer : NetworkBehaviour
     {
+        private static readonly List<NetworkPlayer> activePlayers = new List<NetworkPlayer>();
+        public static IReadOnlyList<NetworkPlayer> ActivePlayers => activePlayers;
+
         [Networked] public Team PlayerTeam { get; set; }
 
+        public bool IsDead => networkHealth != null && (bool)networkHealth.IsDead;
+        public bool IsCarryingFlag { get; private set; }
+
+        public static bool TryGetPlayer(PlayerRef playerRef, out NetworkPlayer result)
+        {
+            result = null;
+            if (playerRef == PlayerRef.None) return false;
+
+            for (int i = activePlayers.Count - 1; i >= 0; i--)
+            {
+                var p = activePlayers[i];
+                if (p == null)
+                {
+                    activePlayers.RemoveAt(i);
+                    continue;
+                }
+
+                if (p.Object != null && p.Object.IsValid && p.Object.StateAuthority == playerRef)
+                {
+                    result = p;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private NetworkHealth networkHealth;
+        private NetworkTransform networkTransform;
         private PlayerMovement playerMovement;
         private CharacterController charController;
         private PlayerInput playerInput;
@@ -27,8 +58,12 @@ namespace FlagBandits.Network
         private Color originalColor = Color.white;
         private Coroutine flashCoroutine;
         private float respawnTimer = 0f;
+        private bool respawnPending = false;
+        private bool respawnTeleported = false;
         private float lastKnownHealth = 100f;
         private ChangeDetector changeDetector;
+
+        private const float RespawnTeleportLeadTime = 0.25f;
 
         private void Awake()
         {
@@ -58,6 +93,11 @@ namespace FlagBandits.Network
 
         public override void Spawned()
         {
+            if (!activePlayers.Contains(this))
+            {
+                activePlayers.Add(this);
+            }
+
             changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
 
             bool isLocal = HasStateAuthority || HasInputAuthority || (Object != null && Object.StateAuthority == Runner.LocalPlayer);
@@ -65,6 +105,7 @@ namespace FlagBandits.Network
             gameObject.name = isLocal ? $"Player (Local - {PlayerTeam})" : $"Player (Remote {Object.StateAuthority} - {PlayerTeam})";
 
             networkHealth = GetComponent<NetworkHealth>();
+            networkTransform = GetComponent<NetworkTransform>();
             playerMovement = GetComponent<PlayerMovement>();
             charController = GetComponent<CharacterController>();
             playerInput = GetComponent<PlayerInput>();
@@ -104,14 +145,38 @@ namespace FlagBandits.Network
         {
             if (!HasStateAuthority) return;
 
+            if (respawnPending)
+            {
+                respawnTimer -= Runner.DeltaTime;
+
+                // Teleport to spawn BEFORE IsDead clears so NetworkTransform syncs the
+                // spawn position to the Master Client before the player can grab flags again.
+                if (!respawnTeleported && respawnTimer <= RespawnTeleportLeadTime)
+                {
+                    TeleportToSpawnWhileDead();
+                }
+
+                if (respawnTimer <= 0f)
+                {
+                    CompleteRespawn();
+                }
+                return;
+            }
+
+            bool carrying = Object != null && NetworkFlag.IsPlayerCarryingAnyFlag(Object.StateAuthority);
+            IsCarryingFlag = carrying;
+
             if (playerMovement != null && playerMovement.enabled)
             {
+                playerMovement.SetCarryingFlag(carrying);
                 playerMovement.ExecuteMovement(Runner.DeltaTime);
             }
         }
 
         public override void Render()
         {
+            IsCarryingFlag = Object != null && Object.IsValid && NetworkFlag.IsPlayerCarryingAnyFlag(Object.StateAuthority);
+
             if (changeDetector != null)
             {
                 foreach (var change in changeDetector.DetectChanges(this))
@@ -175,7 +240,7 @@ namespace FlagBandits.Network
             if (charController != null) charController.enabled = true;
 
             // Point the scene camera at the local player.
-            var cam = UnityEngine.Object.FindFirstObjectByType<ThirdPersonCamera>();
+            var cam = UnityEngine.Object.FindAnyObjectByType<ThirdPersonCamera>();
             if (cam != null)
             {
                 cam.Target = transform;
@@ -194,16 +259,12 @@ namespace FlagBandits.Network
             }
         }
 
-        private void Update()
-        {
-            if (respawnTimer > 0f)
-            {
-                respawnTimer -= Time.deltaTime;
-            }
-        }
-
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
+            activePlayers.Remove(this);
+            IsCarryingFlag = false;
+            if (playerMovement != null) playerMovement.SetCarryingFlag(false);
+
             if (networkHealth != null)
             {
                 networkHealth.OnHealthChanged -= HandleHealthVisual;
@@ -273,31 +334,52 @@ namespace FlagBandits.Network
 
             float delay = networkHealth != null ? networkHealth.RespawnDelay : 3f;
             respawnTimer = delay;
+            respawnPending = true;
+            respawnTeleported = false;
+            IsCarryingFlag = false;
 
-            // Disable movement/shooting while dead.
-            if (playerMovement != null) playerMovement.enabled = false;
+            if (playerMovement != null)
+            {
+                playerMovement.SetCarryingFlag(false);
+                playerMovement.enabled = false;
+            }
             if (playerShooter != null) playerShooter.enabled = false;
             if (playerInput != null) playerInput.enabled = false;
-
-            StartCoroutine(RespawnAfterDelay(delay));
         }
 
-        private System.Collections.IEnumerator RespawnAfterDelay(float delay)
+        private void TeleportToSpawnWhileDead()
         {
-            yield return new WaitForSeconds(delay);
+            respawnTeleported = true;
+
+            Vector3 targetPos = playerMovement != null ? playerMovement.SpawnPosition : transform.position;
+            Quaternion targetRot = playerMovement != null ? playerMovement.SpawnRotation : transform.rotation;
+
+            if (playerMovement != null)
+            {
+                playerMovement.ResetToSpawn(keepControllerDisabled: true);
+            }
+
+            if (networkTransform != null && Runner != null && Runner.IsRunning)
+            {
+                networkTransform.Teleport(targetPos, targetRot);
+            }
+        }
+
+        private void CompleteRespawn()
+        {
+            if (!respawnTeleported)
+            {
+                TeleportToSpawnWhileDead();
+            }
+
+            respawnPending = false;
+            respawnTimer = 0f;
 
             if (networkHealth != null)
             {
                 networkHealth.Respawn();
             }
 
-            // Teleport back to spawn.
-            if (playerMovement != null)
-            {
-                playerMovement.ResetToSpawn();
-            }
-
-            // Re-enable controls.
             if (playerInput != null)
             {
                 playerInput.enabled = true;
@@ -307,7 +389,11 @@ namespace FlagBandits.Network
                     playerInput.actions.FindActionMap("Player")?.Enable();
                 }
             }
-            if (playerMovement != null) playerMovement.enabled = true;
+            if (playerMovement != null)
+            {
+                playerMovement.SetCarryingFlag(false);
+                playerMovement.enabled = true;
+            }
             if (playerShooter != null) playerShooter.enabled = true;
         }
 
@@ -332,6 +418,24 @@ namespace FlagBandits.Network
             float badgeHeight = Mathf.Clamp(barHeight * 0.75f, 20f, 32f);
             float badgeX = (Screen.width - badgeWidth) * 0.5f;
             float badgeY = y - badgeHeight - 4f;
+
+            if (IsCarryingFlag && !dead)
+            {
+                float carryW = Mathf.Clamp(barWidth * 0.85f, 220f, 340f);
+                float carryH = badgeHeight;
+                float carryX = (Screen.width - carryW) * 0.5f;
+                float carryY = badgeY - carryH - 4f;
+                GUI.color = new Color(0.95f, 0.72f, 0.1f, 0.95f);
+                GUI.DrawTexture(new Rect(carryX, carryY, carryW, carryH), Texture2D.whiteTexture);
+                GUI.color = Color.black;
+                var carryStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontStyle = FontStyle.Bold,
+                    fontSize = Mathf.Clamp(Mathf.RoundToInt(carryH * 0.58f), 10, 15)
+                };
+                GUI.Label(new Rect(carryX, carryY, carryW, carryH), "CARRYING ENEMY FLAG (SLOWED)", carryStyle);
+            }
 
             GUI.color = badgeBg;
             GUI.DrawTexture(new Rect(badgeX, badgeY, badgeWidth, badgeHeight), Texture2D.whiteTexture);
